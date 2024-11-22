@@ -1,0 +1,65 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+base {
+    archivesName = id
+    libsDirectory = new File("builtJars/")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+sourcesJar {
+    exclude("videolan/**.zip")
+    exclude("videolan/**.7z")
+}
+
+println("Gradle Java: ${JavaVersion.current()}")
+println("Building project: ${properties.simplename}")
+println("Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}, Encoding: ${System.getProperty "file.encoding"}")
+
+repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven { url "https://repo.spongepowered.org/maven" }
+}
+
+dependencies {
+    implementation "com.github.WaterMediaTeam:videolan-natives:$vlcj_natives_version"
+
+    compileOnly "net.java.dev.jna:jna:$jna_version"
+    compileOnly "net.java.dev.jna:platform:$jnaplatform_version"
+    compileOnly "org.apache.logging.log4j:log4j-api:$log4j_version"
+    compileOnly "org.apache.logging.log4j:log4j-core:$log4jcore_version"
+}
+
+// Process target resources with mod info
+processResources {
+    outputs.upToDateWhen { false }
+    filesMatching(['META-INF/mods.toml', 'META-INF/neoforge.mods.toml', 'pack.mcmeta', 'fabric.mod.json', "watermedia/version.cfg"]) {
+        expand(project.properties)
+    }
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.WARN
+
+    manifest {
+        attributes "Specification-Title"        : id
+        attributes "Specification-Vendor"       : authors
+        attributes "Specification-Version"      : version
+        attributes "Implementation-Title"       : brandname
+        attributes "Implementation-Version"     : version
+        attributes "Implementation-Vendor"      : authors
+        attributes "Implementation-Timestamp"   : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+    }
+}
