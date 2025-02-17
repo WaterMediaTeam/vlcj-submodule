@@ -266,6 +266,18 @@ public final class VideoApi extends BaseApi {
         }
     }
 
+    public int size() {
+        final IntByReference px = new IntByReference();
+        final IntByReference py = new IntByReference();
+        final int result = LibVlc.libvlc_video_get_size(this.mediaPlayerInstance, 0, px, py);
+        if(result == 0) {
+            return px.getValue() * py.getValue();
+        }
+        else {
+            return 0;
+        }
+    }
+
     /**
      * Get the number of available video tracks.
      *

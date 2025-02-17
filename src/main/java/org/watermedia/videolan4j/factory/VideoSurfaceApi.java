@@ -19,10 +19,11 @@
 
 package org.watermedia.videolan4j.factory;
 
+import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.player.embedded.videosurface.CallbackVideoSurface;
 import org.watermedia.videolan4j.player.embedded.videosurface.VideoSurfaceAdapters;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferCleanupCallback;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormatCallback;
+import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferAllocatorCallback;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.RenderCallback;
 
 /**
@@ -38,13 +39,13 @@ public final class VideoSurfaceApi extends BaseApi {
     /**
      * Create a new video surface for "direct" rendering via callbacks.
      *
-     * @param bufferFormatCallback buffer format callback
+     * @param bufferAllocatorCallback buffer format callback
      * @param renderCallback render callback
      * @param lockBuffers <code>true</code> if the video buffer should be locked; <code>false</code> if it should not
      * @return video surface
      */
-    public CallbackVideoSurface newVideoSurface(BufferFormatCallback bufferFormatCallback, RenderCallback renderCallback, boolean lockBuffers, BufferCleanupCallback cleanupCallback) {
-        return new CallbackVideoSurface(bufferFormatCallback, renderCallback, lockBuffers, VideoSurfaceAdapters.getVideoSurfaceAdapter(), cleanupCallback);
+    public CallbackVideoSurface newVideoSurface(BufferFormat bufferFormat, BufferAllocatorCallback bufferAllocatorCallback, RenderCallback renderCallback, boolean lockBuffers, BufferCleanupCallback cleanupCallback) {
+        return new CallbackVideoSurface(bufferFormat, bufferAllocatorCallback, renderCallback, lockBuffers, VideoSurfaceAdapters.getVideoSurfaceAdapter(), cleanupCallback);
     }
 
 }

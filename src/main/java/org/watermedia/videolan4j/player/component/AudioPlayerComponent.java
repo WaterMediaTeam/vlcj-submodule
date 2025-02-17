@@ -68,19 +68,10 @@ public class AudioPlayerComponent extends AudioPlayerComponentBase implements Me
     }
 
     /**
-     * Construct a media player component from a builder.
-     *
-     * @param spec builder
-     */
-    public AudioPlayerComponent(MediaPlayerSpecs.AudioPlayerSpec spec) {
-        this(spec.factory);
-    }
-
-    /**
      * Construct a media player component with reasonable defaults.
      */
     public AudioPlayerComponent() {
-        this((MediaPlayerFactory) null);
+        this(null);
     }
 
     private MediaPlayerFactory initMediaPlayerFactory(MediaPlayerFactory mediaPlayerFactory) {

@@ -22,9 +22,9 @@ package org.watermedia.videolan4j.player.embedded.videosurface;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
+import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferCleanupCallback;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormat;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormatCallback;
+import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferAllocatorCallback;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.RenderCallback;
 import org.watermedia.videolan4j.binding.lib.LibVlc;
 import org.watermedia.videolan4j.binding.internal.libvlc_display_callback_t;
@@ -37,15 +37,9 @@ import org.watermedia.videolan4j.player.base.MediaPlayer;
 /**
  * Implementation of a video surface that uses native callbacks to receive video frame data for rendering.
  */
-public class CallbackVideoSurface extends VideoSurface {
+public class CallbackVideoSurface extends VideoSurface implements libvlc_video_format_cb, libvlc_video_cleanup_cb, libvlc_lock_callback_t, libvlc_unlock_callback_t, libvlc_display_callback_t {
 
-    private final libvlc_video_format_cb setup = new SetupCallback();
-    private final libvlc_video_cleanup_cb cleanup = new CleanupCallback();
-    private final libvlc_lock_callback_t lock = new LockCallback();
-    private final libvlc_unlock_callback_t unlock = new UnlockCallback();
-    private final libvlc_display_callback_t display = new DisplayCallback();
-
-    private final BufferFormatCallback bufferFormatCallback;
+    private final BufferAllocatorCallback bufferAllocatorCallback;
     private final BufferCleanupCallback cleanupCallback;
     private final RenderCallback renderCallback;
 
@@ -53,7 +47,7 @@ public class CallbackVideoSurface extends VideoSurface {
 
     private MediaPlayer mediaPlayer;
 
-    private BufferFormat bufferFormat;
+    private final BufferFormat bufferFormat;
 
     /**
      * Create a video surface.
@@ -63,125 +57,83 @@ public class CallbackVideoSurface extends VideoSurface {
      * @param lock <code>true</code> if the video buffer should be locked; <code>false</code> if not
      * @param surfaceAdapter adapter to attach a video surface to a native media player
      */
-    public CallbackVideoSurface(BufferFormatCallback formatCallback, RenderCallback renderCallback, boolean lock, VideoSurfaceAdapter surfaceAdapter, BufferCleanupCallback cleanupCallback) {
+    public CallbackVideoSurface(BufferFormat bufferFormat, final BufferAllocatorCallback formatCallback, final RenderCallback renderCallback, final boolean lock, final VideoSurfaceAdapter surfaceAdapter, final BufferCleanupCallback cleanupCallback) {
         super(surfaceAdapter);
-
-        this.bufferFormatCallback = formatCallback;
+        this.bufferFormat = bufferFormat;
+        this.bufferAllocatorCallback = formatCallback;
         this.renderCallback = renderCallback;
         this.nativeBuffers = new NativeBuffers(lock);
         this.cleanupCallback = cleanupCallback;
     }
 
     @Override
-    public void attach(MediaPlayer mediaPlayer) {
+    public void attach(final MediaPlayer mediaPlayer) {
         this.mediaPlayer = mediaPlayer;
 
-        LibVlc.libvlc_video_set_format_callbacks(mediaPlayer.mediaPlayerInstance(), setup, cleanup);
-        LibVlc.libvlc_video_set_callbacks(mediaPlayer.mediaPlayerInstance(), lock, unlock, display, null);
+        LibVlc.libvlc_video_set_format_callbacks(mediaPlayer.mediaPlayerInstance(), this, this);
+        LibVlc.libvlc_video_set_callbacks(mediaPlayer.mediaPlayerInstance(), this, this, this, null);
+    }
+
+
+    @Override
+    public int format(final PointerByReference opaque, final PointerByReference chroma, final IntByReference width, final IntByReference height, final PointerByReference pitches, final PointerByReference lines) {
+        this.applyBufferFormat(this.bufferFormat, chroma, width, height, pitches, lines);
+        final int result = this.nativeBuffers.allocate(this.bufferFormat, width.getValue(), height.getValue());
+        this.bufferAllocatorCallback.allocatedBuffers(this.nativeBuffers.buffers());
+        return result;
     }
 
     /**
-     * Implementation of a callback invoked by the native library to set up the required video buffer characteristics.
+     * Set the desired video format properties - space for these structures is already allocated by LibVlc, we
+     * simply fill the existing memory.
+     * <p>
+     * The {@link BufferFormat} class restricts the chroma to maximum four bytes, so we don't need check it here, we
+     * do however need to check if it is less than four.
      *
-     * This callback is invoked when the video format changes.
+     * @param chroma
+     * @param width
+     * @param height
+     * @param pitches
+     * @param lines
      */
-    private final class SetupCallback implements libvlc_video_format_cb {
-
-        @Override
-        public int format(PointerByReference opaque, PointerByReference chroma, IntByReference width, IntByReference height, PointerByReference pitches, PointerByReference lines) {
-            bufferFormat = bufferFormatCallback.getBufferFormat(width.getValue(), height.getValue());
-            applyBufferFormat(bufferFormat, chroma, width, height, pitches, lines);
-            int result = nativeBuffers.allocate(bufferFormat);
-            bufferFormatCallback.allocatedBuffers(nativeBuffers.buffers());
-            return result;
-        }
-
-        /**
-         * Set the desired video format properties - space for these structures is already allocated by LibVlc, we
-         * simply fill the existing memory.
-         * <p>
-         * The {@link BufferFormat} class restricts the chroma to maximum four bytes, so we don't need check it here, we
-         * do however need to check if it is less than four.
-         *
-         * @param chroma
-         * @param width
-         * @param height
-         * @param pitches
-         * @param lines
-         */
-        private void applyBufferFormat(BufferFormat bufferFormat, PointerByReference chroma, IntByReference width, IntByReference height, PointerByReference pitches, PointerByReference lines) {
-            byte[] chromaBytes = bufferFormat.getChroma().getBytes();
-            chroma.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
-            width.setValue(bufferFormat.getWidth());
-            height.setValue(bufferFormat.getHeight());
-            int[] pitchValues = bufferFormat.getPitches();
-            int[] lineValues = bufferFormat.getLines();
-            pitches.getPointer().write(0, pitchValues, 0, pitchValues.length);
-            lines.getPointer().write(0, lineValues, 0, lineValues.length);
-        }
-
+    private void applyBufferFormat(final BufferFormat bufferFormat, final PointerByReference chroma, final IntByReference width, final IntByReference height, final PointerByReference pitches, final PointerByReference lines) {
+        final byte[] chromaBytes = bufferFormat.getChroma().getBytes();
+        chroma.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
+        final int w = width.getValue();
+        final int h = height.getValue();
+        final int[] pitchValues = bufferFormat.getPitches(w, h);
+        final int[] lineValues = bufferFormat.getLines(w, h);
+        pitches.getPointer().write(0, pitchValues, 0, pitchValues.length);
+        lines.getPointer().write(0, lineValues, 0, lineValues.length);
     }
 
-    /**
-     * Implementation of a callback invoked by the native library to clean up previously allocated video buffers.
-     *
-     * This callback is invoked when the video buffer is no longer needed.
-     */
-    private final class CleanupCallback implements libvlc_video_cleanup_cb {
-
-        @Override
-        public void cleanup(Pointer opaque) {
-            cleanupCallback.cleanupBuffers(nativeBuffers.buffers());
-            nativeBuffers.free();
-        }
-
+    @Override
+    public void cleanup(final Pointer opaque) {
+        this.cleanupCallback.cleanupBuffers(CallbackVideoSurface.this.nativeBuffers.buffers());
+        this.nativeBuffers.free();
     }
 
-    /**
-     * Implementation of a callback invoked by the native library to prepare the video buffer(s) for rendering a video
-     * frame.
-     *
-     * This callback is invoked every frame.
-     */
-    private final class LockCallback implements libvlc_lock_callback_t {
+    @Override
+    public void display(final Pointer opaque, final Pointer picture) {
+        this.renderCallback.display(this.mediaPlayer, this.nativeBuffers.buffers(), this.bufferFormat);
+    }
 
-        @Override
-        public Pointer lock(Pointer opaque, PointerByReference planes) {
-            Pointer[] pointers = nativeBuffers.pointers();
+    @Override
+    public Pointer lock(final Pointer opaque, final PointerByReference planes) {
+        final Pointer[] pointers = this.nativeBuffers.pointers();
+        // WATERMeDIA PATCH - START
+        try {
+            this.semaphore.acquire();
             planes.getPointer().write(0, pointers, 0, pointers.length);
-            if (semaphore != null) semaphore.acquireUninterruptibly(); // WATERMeDIA PATCH
-            return null;
+        } catch (final InterruptedException e) {
+            throw new RuntimeException("Thread was interrupted", e);
         }
-
+        this.semaphore.release();
+        // WATERMeDIA PATCH - END
+        return null;
     }
 
-    /**
-     * Implementation of a callback invoked by the native library after each
-     * video frame.
-     *
-     * This callback is invoked every frame.
-     */
-    private final class UnlockCallback implements libvlc_unlock_callback_t {
-
-        @Override
-        public void unlock(Pointer opaque, Pointer picture, Pointer plane) {
-        }
+    @Override
+    public void unlock(final Pointer opaque, final Pointer picture, final Pointer plane) {
     }
-
-    /**
-     * Implementation of a callback invoked by the native library to render a
-     * single frame of video.
-     *
-     * This callback is invoked every frame.
-     */
-    private final class DisplayCallback implements libvlc_display_callback_t {
-
-        @Override
-        public void display(Pointer opaque, Pointer picture) {
-            if (semaphore != null) semaphore.release(); // WATERMeDIA PATCH
-            CallbackVideoSurface.this.renderCallback.display(mediaPlayer, nativeBuffers.buffers(), bufferFormat);
-        }
-
-    }
-
 }

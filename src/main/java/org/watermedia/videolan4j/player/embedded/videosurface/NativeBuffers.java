@@ -22,9 +22,9 @@ package org.watermedia.videolan4j.player.embedded.videosurface;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
+import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.ByteBufferFactory;
 import org.watermedia.videolan4j.VideoLan4J;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormat;
 import org.watermedia.videolan4j.binding.lib.Kernel32;
 import org.watermedia.videolan4j.binding.lib.LibC;
 import org.watermedia.videolan4j.binding.lib.size_t;
@@ -57,10 +57,10 @@ final class NativeBuffers {
      * @param bufferFormat
      * @return
      */
-    int allocate(BufferFormat bufferFormat) {
-        int planeCount = bufferFormat.getPlaneCount();
-        int[] pitchValues = bufferFormat.getPitches();
-        int[] lineValues = bufferFormat.getLines();
+    int allocate(BufferFormat bufferFormat, int w, int h) {
+        int[] pitchValues = bufferFormat.getPitches(w, h);
+        int[] lineValues = bufferFormat.getLines(w, h);
+        int planeCount = pitchValues.length;
         nativeBuffers = new ByteBuffer[planeCount];
         pointers = new Pointer[planeCount];
         for (int i = 0; i < planeCount; i ++) {

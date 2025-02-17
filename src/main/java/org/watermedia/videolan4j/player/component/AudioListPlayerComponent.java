@@ -56,19 +56,10 @@ public class AudioListPlayerComponent extends AudioListPlayerComponentBase {
     }
 
     /**
-     * Construct an audio list player component from a builder.
-     *
-     * @param spec builder
-     */
-    public AudioListPlayerComponent(MediaPlayerSpecs.AudioPlayerSpec spec) {
-        this(spec.factory);
-    }
-
-    /**
      * Construct an audio list player component with reasonable defaults.
      */
     public AudioListPlayerComponent() {
-        this((MediaPlayerFactory) null);
+        this(null);
     }
 
     @Override

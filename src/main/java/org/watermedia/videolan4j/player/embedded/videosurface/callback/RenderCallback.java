@@ -19,6 +19,7 @@
 
 package org.watermedia.videolan4j.player.embedded.videosurface.callback;
 
+import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.player.base.MediaPlayer;
 
 import java.nio.ByteBuffer;

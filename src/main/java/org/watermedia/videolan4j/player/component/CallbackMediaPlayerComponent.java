@@ -20,15 +20,15 @@
 package org.watermedia.videolan4j.player.component;
 
 import com.sun.jna.Platform;
+import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.player.component.callback.CallbackImagePainter;
 import org.watermedia.videolan4j.player.component.callback.ScaledCallbackImagePainter;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.*;
 import org.watermedia.videolan4j.VideoLan4J;
 import org.watermedia.videolan4j.factory.MediaPlayerFactory;
 import org.watermedia.videolan4j.player.base.MediaPlayer;
 import org.watermedia.videolan4j.player.embedded.EmbeddedMediaPlayer;
 import org.watermedia.videolan4j.player.embedded.fullscreen.FullScreenStrategy;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.format.RV32BufferFormat;
+import org.watermedia.videolan4j.player.embedded.videosurface.callback.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -104,19 +104,19 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
      * @param lockBuffers <code>true</code> if the native video buffer should be locked; <code>false</code> if not
      * @param imagePainter image painter (video renderer)
      * @param renderCallback render callback
-     * @param bufferFormatCallback buffer format callback
+     * @param bufferAllocatorCallback buffer format callback
      * @param cleanupCallback executed BEFORE buffers got released
      */
-    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, boolean lockBuffers, CallbackImagePainter imagePainter, RenderCallback renderCallback, BufferFormatCallback bufferFormatCallback, BufferCleanupCallback cleanupCallback) {
+    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, boolean lockBuffers, BufferFormat bufferFormat, CallbackImagePainter imagePainter, RenderCallback renderCallback, BufferAllocatorCallback bufferAllocatorCallback, BufferCleanupCallback cleanupCallback) {
         this.ownFactory = mediaPlayerFactory == null;
         this.mediaPlayerFactory = initMediaPlayerFactory(mediaPlayerFactory);
 
-        validateArguments(imagePainter, renderCallback, bufferFormatCallback, cleanupCallback);
+        validateArguments(imagePainter, renderCallback, bufferAllocatorCallback, cleanupCallback);
 
         if (renderCallback == null) {
             this.defaultRenderCallback = new DefaultRenderCallback();
             this.imagePainter          = imagePainter == null ? new ScaledCallbackImagePainter() : imagePainter;
-            bufferFormatCallback       = new DefaultBufferFormatCallback();
+            bufferAllocatorCallback = new BufferAllocatorCallbackAdapter();
             renderCallback             = this.defaultRenderCallback;
         } else {
             this.defaultRenderCallback = null;
@@ -138,10 +138,10 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
 
         // Here we patch callbacks adding a forced check for classloader
         // avoiding NPE on old versions of FORGE
-        bufferFormatCallback = init$buildClassLoaderSafeCallback(bufferFormatCallback);
+        bufferAllocatorCallback = init$buildClassLoaderSafeCallback(bufferAllocatorCallback);
         // WATERMeDIA PATCH - end
 
-        this.mediaPlayer.videoSurface().set(this.mediaPlayerFactory.videoSurfaces().newVideoSurface(bufferFormatCallback, renderCallback, lockBuffers, cleanupCallback));
+        this.mediaPlayer.videoSurface().set(this.mediaPlayerFactory.videoSurfaces().newVideoSurface(bufferFormat, bufferAllocatorCallback, renderCallback, lockBuffers, cleanupCallback));
 
         // WATERMeDIA Patch - REMOVED JPanel impl
 
@@ -151,19 +151,10 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
     }
 
     // WATERMeDIA PATCH - start
-    private BufferFormatCallback init$buildClassLoaderSafeCallback(BufferFormatCallback cb) {
-        return new BufferFormatCallback() {
-            @Override
-            public void allocatedBuffers(ByteBuffer[] buffers) {
-                VideoLan4J.checkClassLoader(mediaPlayer.getClassLoader());
-                cb.allocatedBuffers(buffers);
-            }
-
-            @Override
-            public BufferFormat getBufferFormat(int sourceWidth, int sourceHeight) {
-                VideoLan4J.checkClassLoader(mediaPlayer.getClassLoader());
-                return cb.getBufferFormat(sourceWidth, sourceHeight);
-            }
+    private BufferAllocatorCallback init$buildClassLoaderSafeCallback(BufferAllocatorCallback cb) {
+        return buffers -> {
+            VideoLan4J.checkClassLoader(this.mediaPlayer.getClassLoader());
+            cb.allocatedBuffers(buffers);
         };
     }
 
@@ -174,8 +165,8 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
         };
     }
 
-    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, boolean lockBuffers, RenderCallback renderCallback, BufferFormatCallback bufferFormatCallback, BufferCleanupCallback cleanupCallback) {
-        this(mediaPlayerFactory, null, null, lockBuffers, null, renderCallback, bufferFormatCallback, cleanupCallback);
+    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, boolean lockBuffers, BufferFormat bufferFormat, RenderCallback renderCallback, BufferAllocatorCallback bufferAllocatorCallback, BufferCleanupCallback cleanupCallback) {
+        this(mediaPlayerFactory, null, null, lockBuffers, bufferFormat, null, renderCallback, bufferAllocatorCallback, cleanupCallback);
     }
     // WATERMeDIA PATCH - end
 
@@ -188,8 +179,8 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
      * @param lockBuffers <code>true</code> if the native video buffer should be locked; <code>false</code> if not
      * @param imagePainter image painter (video renderer)
      */
-    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, boolean lockBuffers, CallbackImagePainter imagePainter) {
-        this(mediaPlayerFactory, fullScreenStrategy, inputEvents, lockBuffers, imagePainter, null, null, null);
+    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, boolean lockBuffers, BufferFormat bufferFormat, CallbackImagePainter imagePainter) {
+        this(mediaPlayerFactory, fullScreenStrategy, inputEvents, lockBuffers, bufferFormat, imagePainter, null, null, null);
     }
 
     /**
@@ -200,21 +191,13 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
      * @param inputEvents keyboard/mouse input event configuration
      * @param lockBuffers <code>true</code> if the native video buffer should be locked; <code>false</code> if not
      * @param renderCallback render callback
-     * @param bufferFormatCallback buffer format callback
+     * @param bufferAllocatorCallback buffer format callback
      * @param cleanupCallback cleanup callback
      */
-    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, boolean lockBuffers, RenderCallback renderCallback, BufferFormatCallback bufferFormatCallback, BufferCleanupCallback cleanupCallback) {
-        this(mediaPlayerFactory, fullScreenStrategy, inputEvents, lockBuffers, null, renderCallback, bufferFormatCallback, cleanupCallback);
+    public CallbackMediaPlayerComponent(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, boolean lockBuffers, BufferFormat bufferFormat, RenderCallback renderCallback, BufferAllocatorCallback bufferAllocatorCallback, BufferCleanupCallback cleanupCallback) {
+        this(mediaPlayerFactory, fullScreenStrategy, inputEvents, lockBuffers, bufferFormat, null, renderCallback, bufferAllocatorCallback, cleanupCallback);
     }
 
-    /**
-     * Create a callback media player component from a builder.
-     *
-     * @param spec builder
-     */
-    public CallbackMediaPlayerComponent(MediaPlayerSpecs.CallbackMediaPlayerSpec spec) {
-        this(spec.factory, spec.fullScreenStrategy, spec.inputEvents, spec.lockedBuffers, spec.imagePainter, spec.renderCallback, spec.bufferFormatCallback, spec.cleanupCallback);
-    }
 
     /**
      * Create a callback media player component with LibVLC initialisation arguments and reasonable defaults.
@@ -222,14 +205,14 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
      * @param libvlcArgs LibVLC initialisation arguments
      */
     public CallbackMediaPlayerComponent(String... libvlcArgs) {
-        this(new MediaPlayerFactory(libvlcArgs), null, null, true, null, null, null, null);
+        this(new MediaPlayerFactory(libvlcArgs), null, null, true, null, null, null, null, null);
     }
 
     /**
      * Create a callback media player component with reasonable defaults.
      */
     public CallbackMediaPlayerComponent() {
-        this(null, null, null, true, null, null, null, null);
+        this(null, null, null, true, null, null, null, null, null);
     }
 
     /**
@@ -237,15 +220,15 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
      *
      * @param imagePainter image painter (video renderer)
      * @param renderCallback render callback
-     * @param bufferFormatCallback buffer format callback
+     * @param bufferAllocatorCallback buffer format callback
      */
-    private void validateArguments(CallbackImagePainter imagePainter, RenderCallback renderCallback, BufferFormatCallback bufferFormatCallback, BufferCleanupCallback cleanupCallback) {
+    private void validateArguments(CallbackImagePainter imagePainter, RenderCallback renderCallback, BufferAllocatorCallback bufferAllocatorCallback, BufferCleanupCallback cleanupCallback) {
         if (renderCallback == null) {
-            if (bufferFormatCallback  != null) throw new IllegalArgumentException("Do not specify bufferFormatCallback without a renderCallback");
+            if (bufferAllocatorCallback != null) throw new IllegalArgumentException("Do not specify bufferFormatCallback without a renderCallback");
             if (cleanupCallback != null) throw new IllegalArgumentException("Do not specify cleanupCallback without a renderCallback");
         } else {
             if (imagePainter          != null) throw new IllegalArgumentException("Do not specify imagePainter with a renderCallback");
-            if (bufferFormatCallback  == null) throw new IllegalArgumentException("bufferFormatCallback is required with a renderCallback");
+            if (bufferAllocatorCallback == null) throw new IllegalArgumentException("bufferFormatCallback is required with a renderCallback");
         }
     }
 
@@ -319,19 +302,6 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
     }
 
     // WATERMeDIA Patch - Removed JPanel VideoSurface
-    /**
-     * Default implementation of a buffer format callback that returns a buffer format suitable for rendering into a
-     * {@link BufferedImage}.
-     */
-    private class DefaultBufferFormatCallback extends BufferFormatCallbackAdapter {
-
-        @Override
-        public BufferFormat getBufferFormat(int sourceWidth, int sourceHeight) {
-            newVideoBuffer(sourceWidth, sourceHeight);
-            return new RV32BufferFormat(sourceWidth, sourceHeight);
-        }
-
-    }
 
     /**
      * Used when the default buffer format callback is invoked to setup a new video buffer.

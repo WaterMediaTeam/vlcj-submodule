@@ -55,7 +55,7 @@ public abstract class VideoSurface {
 
     // WATERMeDIA Patch: JANKY HACK FOR BUFFER UPLOADING
     public Semaphore getSemaphore() {
-        return semaphore;
+        return this.semaphore;
     }
 
     // WATERMeDIA Patch: JANKY HACK FOR BUFFER UPLOADING

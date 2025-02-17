@@ -22,13 +22,13 @@ package org.watermedia.videolan4j.player.embedded.videosurface.callback;
 import java.nio.ByteBuffer;
 
 /**
- * Default implementation for a {@link BufferFormatCallback}.
+ * Default implementation for a {@link BufferAllocatorCallback}.
  * <p>
  * This component simply provides an empty implementation for {@link #allocatedBuffers(ByteBuffer[])} since it is not
  * required in all cases.
  * This class is keep it just for internal usages
  */
-public abstract class BufferFormatCallbackAdapter implements BufferFormatCallback {
+public class BufferAllocatorCallbackAdapter implements BufferAllocatorCallback {
 
     @Override
     public void allocatedBuffers(ByteBuffer[] buffers) {

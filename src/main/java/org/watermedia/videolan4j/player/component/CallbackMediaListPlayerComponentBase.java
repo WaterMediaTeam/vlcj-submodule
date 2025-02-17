@@ -19,19 +19,18 @@
 
 package org.watermedia.videolan4j.player.component;
 
+import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.media.MediaRef;
 import org.watermedia.videolan4j.medialist.MediaList;
 import org.watermedia.videolan4j.medialist.MediaListEventListener;
 import org.watermedia.videolan4j.player.component.callback.CallbackImagePainter;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferCleanupCallback;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormatCallback;
+import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferAllocatorCallback;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.RenderCallback;
 import org.watermedia.videolan4j.player.list.MediaListPlayer;
 import org.watermedia.videolan4j.player.list.MediaListPlayerEventListener;
 import org.watermedia.videolan4j.factory.MediaPlayerFactory;
 import org.watermedia.videolan4j.player.embedded.fullscreen.FullScreenStrategy;
-
-import javax.swing.*;
 
 /**
  * Base implementation of a callback "direct-rendering" media player.
@@ -50,14 +49,14 @@ public class CallbackMediaListPlayerComponentBase extends CallbackMediaPlayerCom
      * @param mediaPlayerFactory factory used to create the component
      * @param fullScreenStrategy full-screen strategy
      * @param inputEvents required input events
-     * @param bufferFormatCallback
+     * @param bufferAllocatorCallback
      * @param lockBuffers
      * @param imagePainter
      * @param cleanupCallback
      * @param renderCallback
      */
-    public CallbackMediaListPlayerComponentBase(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, BufferFormatCallback bufferFormatCallback, boolean lockBuffers, CallbackImagePainter imagePainter, BufferCleanupCallback cleanupCallback, RenderCallback renderCallback) {
-        super(mediaPlayerFactory, fullScreenStrategy, inputEvents, lockBuffers, imagePainter, renderCallback, bufferFormatCallback, cleanupCallback);
+    public CallbackMediaListPlayerComponentBase(MediaPlayerFactory mediaPlayerFactory, FullScreenStrategy fullScreenStrategy, InputEvents inputEvents, BufferAllocatorCallback bufferAllocatorCallback, boolean lockBuffers, BufferFormat bufferFormat, CallbackImagePainter imagePainter, BufferCleanupCallback cleanupCallback, RenderCallback renderCallback) {
+        super(mediaPlayerFactory, fullScreenStrategy, inputEvents, lockBuffers, bufferFormat, imagePainter, renderCallback, bufferAllocatorCallback, cleanupCallback);
     }
 
     // === MediaListPlayerEventListener =========================================

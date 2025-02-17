@@ -17,25 +17,21 @@
  * Copyright 2009-2019 Caprica Software Limited.
  */
 
-package org.watermedia.videolan4j.player.embedded.videosurface.callback.format;
+package org.watermedia.videolan4j.player.embedded.videosurface.callback;
 
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormat;
+import org.watermedia.videolan4j.player.embedded.videosurface.CallbackVideoSurface;
+
+import java.nio.ByteBuffer;
 
 /**
- * Implementation of a buffer format for RV32.
- * <p>
- * RV32 is a 24-bit BGR format with 8-bit of padding (no alpha) in a single plane.
+ * Callback invoked by the {@link CallbackVideoSurface} when the format of the video changes.
  */
-public class RV32BufferFormat extends BufferFormat {
-
+// WATERMeDIA PATCH
+public interface BufferAllocatorCallback {
     /**
-     * Creates a RV32 buffer format with the given width and height.
+     * Invoked when new video buffers have been allocated.
      *
-     * @param width width of the buffer
-     * @param height height of the buffer
+     * @param buffers buffers that were allocated
      */
-    public RV32BufferFormat(int width, int height) {
-        super("RV32", width, height, new int[] {width * 4}, new int[] {height});
-    }
-
+    void allocatedBuffers(ByteBuffer[] buffers);
 }
