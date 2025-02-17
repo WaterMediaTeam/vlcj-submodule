@@ -87,8 +87,6 @@ public class CallbackVideoSurface extends VideoSurface implements libvlc_video_f
         final int[] pitches = this.bufferFormat.getPitches(width, height);
         final int[] lines = this.bufferFormat.getLines(width, height);
 
-        VideoLan4J.LOGGER.info("Width: {} - Height: {} - Chroma: {} - Pitches: {} - Lines: {}", width, height, bufferFormat.getChroma(), Arrays.toString(pitches), Arrays.toString(lines));
-
         // APPLY FORMAT - (IGNORE WIDTH AND HEIGHT)
         chromaPointer.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
         pitchesPointer.getPointer().write(0, pitches, 0, pitches.length);
@@ -117,10 +115,12 @@ public class CallbackVideoSurface extends VideoSurface implements libvlc_video_f
         try {
             this.semaphore.acquire();
             planes.getPointer().write(0, pointers, 0, pointers.length);
+            this.semaphore.release();
         } catch (final InterruptedException e) {
+            this.semaphore.release();
             throw new RuntimeException("Thread was interrupted", e);
         }
-        this.semaphore.release();
+
         // WATERMeDIA PATCH - END
         return null;
     }
