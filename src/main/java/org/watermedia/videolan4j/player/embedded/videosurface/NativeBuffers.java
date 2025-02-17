@@ -22,7 +22,6 @@ package org.watermedia.videolan4j.player.embedded.videosurface;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
-import org.watermedia.videolan4j.BufferFormat;
 import org.watermedia.videolan4j.ByteBufferFactory;
 import org.watermedia.videolan4j.VideoLan4J;
 import org.watermedia.videolan4j.binding.lib.Kernel32;
@@ -45,7 +44,7 @@ final class NativeBuffers {
      */
     private Pointer[] pointers;
 
-    public NativeBuffers(boolean lockBuffers) {
+    public NativeBuffers(final boolean lockBuffers) {
         this.lockBuffers = lockBuffers;
     }
 
@@ -54,59 +53,56 @@ final class NativeBuffers {
      * Memory must be aligned correctly (on a 32-byte boundary) for the libvlc API functions, this is all taken care of
      * by the {@link ByteBufferFactory}.
      *
-     * @param bufferFormat
      * @return
      */
-    int allocate(BufferFormat bufferFormat, int w, int h) {
-        int[] pitchValues = bufferFormat.getPitches(w, h);
-        int[] lineValues = bufferFormat.getLines(w, h);
-        int planeCount = pitchValues.length;
-        nativeBuffers = new ByteBuffer[planeCount];
-        pointers = new Pointer[planeCount];
+    int allocate(final int[] pitches, final int[] lines) {
+        final int planeCount = pitches.length;
+        this.nativeBuffers = new ByteBuffer[planeCount];
+        this.pointers = new Pointer[planeCount];
         for (int i = 0; i < planeCount; i ++) {
-            ByteBuffer buffer = ByteBufferFactory.alloc(pitchValues[i] * lineValues[i]);
+            final ByteBuffer buffer = ByteBufferFactory.alloc(pitches[i] * lines[i]);
             if (!ByteBufferFactory.isAligned(ByteBufferFactory.address(buffer))) {
                 VideoLan4J.LOGGER.warn("Detected an unaligned buffer. this might lead in I/O issues");
             }
-            nativeBuffers[i] = buffer;
-            pointers[i] = Pointer.createConstant(ByteBufferFactory.address(buffer));
-            if (lockBuffers) {
+            this.nativeBuffers[i] = buffer;
+            this.pointers[i] = Pointer.createConstant(ByteBufferFactory.address(buffer));
+            if (this.lockBuffers) {
                 if (!Platform.isWindows()) {
-                    LibC.INSTANCE.mlock(pointers[i], new NativeLong(buffer.capacity()));
+                    LibC.INSTANCE.mlock(this.pointers[i], new NativeLong(buffer.capacity()));
                 } else {
-                    Kernel32.INSTANCE.VirtualLock(pointers[i], new size_t(buffer.capacity()));
+                    Kernel32.INSTANCE.VirtualLock(this.pointers[i], new size_t(buffer.capacity()));
                 }
             }
         }
-        return nativeBuffers.length;
+        return this.nativeBuffers.length;
     }
 
     void free() {
-        if (nativeBuffers != null) {
-            if (lockBuffers) {
-                for (int i = 0; i < nativeBuffers.length; i++) {
+        if (this.nativeBuffers != null) {
+            if (this.lockBuffers) {
+                for (int i = 0; i < this.nativeBuffers.length; i++) {
                     if (!Platform.isWindows()) {
-                        LibC.INSTANCE.munlock(pointers[i], new NativeLong(nativeBuffers[i].capacity()));
+                        LibC.INSTANCE.munlock(this.pointers[i], new NativeLong(this.nativeBuffers[i].capacity()));
                     } else {
-                        Kernel32.INSTANCE.VirtualUnlock(pointers[i], new size_t(nativeBuffers[i].capacity()));
+                        Kernel32.INSTANCE.VirtualUnlock(this.pointers[i], new size_t(this.nativeBuffers[i].capacity()));
                     }
                 }
             }
             // WATERMeDIA
-            for(ByteBuffer buffer: nativeBuffers) {
+            for(final ByteBuffer buffer: this.nativeBuffers) {
                 ByteBufferFactory.dealloc(buffer);
             }
-            nativeBuffers = null;
-            pointers = null;
+            this.nativeBuffers = null;
+            this.pointers = null;
         }
     }
 
     ByteBuffer[] buffers() {
-        return nativeBuffers;
+        return this.nativeBuffers;
     }
 
     Pointer[] pointers() {
-        return pointers;
+        return this.pointers;
     }
 
 }

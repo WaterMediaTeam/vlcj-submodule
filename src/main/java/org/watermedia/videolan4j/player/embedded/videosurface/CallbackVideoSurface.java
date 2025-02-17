@@ -76,40 +76,26 @@ public class CallbackVideoSurface extends VideoSurface implements libvlc_video_f
 
 
     @Override
-    public int format(final PointerByReference opaque, final PointerByReference chroma, final IntByReference width, final IntByReference height, final PointerByReference pitches, final PointerByReference lines) {
-        this.applyBufferFormat(this.bufferFormat, chroma, width, height, pitches, lines);
-        final int result = this.nativeBuffers.allocate(this.bufferFormat, width.getValue(), height.getValue());
+    public int format(final PointerByReference opaque, final PointerByReference chromaPointer, final IntByReference widthPointer, final IntByReference heightPointer, final PointerByReference pitchesPointer, final PointerByReference linesPointer) {
+        final int width = widthPointer.getValue();
+        final int height = heightPointer.getValue();
+        final byte[] chromaBytes = this.bufferFormat.getChroma().getBytes();
+        final int[] lines = this.bufferFormat.getLines(width, height);
+        final int[] pitches = this.bufferFormat.getPitches(width, height);
+
+        // APPLY FORMAT - (IGNORE WIDTH AND HEIGHT)
+        chromaPointer.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
+        pitchesPointer.getPointer().write(0, pitches, 0, pitches.length);
+        linesPointer.getPointer().write(0, lines, 0, lines.length);
+
+        final int result = this.nativeBuffers.allocate(pitches, lines);
         this.bufferAllocatorCallback.allocatedBuffers(this.nativeBuffers.buffers());
         return result;
     }
 
-    /**
-     * Set the desired video format properties - space for these structures is already allocated by LibVlc, we
-     * simply fill the existing memory.
-     * <p>
-     * The {@link BufferFormat} class restricts the chroma to maximum four bytes, so we don't need check it here, we
-     * do however need to check if it is less than four.
-     *
-     * @param chroma
-     * @param width
-     * @param height
-     * @param pitches
-     * @param lines
-     */
-    private void applyBufferFormat(final BufferFormat bufferFormat, final PointerByReference chroma, final IntByReference width, final IntByReference height, final PointerByReference pitches, final PointerByReference lines) {
-        final byte[] chromaBytes = bufferFormat.getChroma().getBytes();
-        chroma.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
-        final int w = width.getValue();
-        final int h = height.getValue();
-        final int[] pitchValues = bufferFormat.getPitches(w, h);
-        final int[] lineValues = bufferFormat.getLines(w, h);
-        pitches.getPointer().write(0, pitchValues, 0, pitchValues.length);
-        lines.getPointer().write(0, lineValues, 0, lineValues.length);
-    }
-
     @Override
     public void cleanup(final Pointer opaque) {
-        this.cleanupCallback.cleanupBuffers(CallbackVideoSurface.this.nativeBuffers.buffers());
+        this.cleanupCallback.cleanupBuffers(this.nativeBuffers.buffers());
         this.nativeBuffers.free();
     }
 
