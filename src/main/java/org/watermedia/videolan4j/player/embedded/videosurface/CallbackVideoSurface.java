@@ -23,6 +23,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import org.watermedia.videolan4j.BufferFormat;
+import org.watermedia.videolan4j.VideoLan4J;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferCleanupCallback;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferAllocatorCallback;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.RenderCallback;
@@ -33,6 +34,9 @@ import org.watermedia.videolan4j.binding.internal.libvlc_unlock_callback_t;
 import org.watermedia.videolan4j.binding.internal.libvlc_video_cleanup_cb;
 import org.watermedia.videolan4j.binding.internal.libvlc_video_format_cb;
 import org.watermedia.videolan4j.player.base.MediaPlayer;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
 
 /**
  * Implementation of a video surface that uses native callbacks to receive video frame data for rendering.
@@ -57,7 +61,7 @@ public class CallbackVideoSurface extends VideoSurface implements libvlc_video_f
      * @param lock <code>true</code> if the video buffer should be locked; <code>false</code> if not
      * @param surfaceAdapter adapter to attach a video surface to a native media player
      */
-    public CallbackVideoSurface(BufferFormat bufferFormat, final BufferAllocatorCallback formatCallback, final RenderCallback renderCallback, final boolean lock, final VideoSurfaceAdapter surfaceAdapter, final BufferCleanupCallback cleanupCallback) {
+    public CallbackVideoSurface(final BufferFormat bufferFormat, final BufferAllocatorCallback formatCallback, final RenderCallback renderCallback, final boolean lock, final VideoSurfaceAdapter surfaceAdapter, final BufferCleanupCallback cleanupCallback) {
         super(surfaceAdapter);
         this.bufferFormat = bufferFormat;
         this.bufferAllocatorCallback = formatCallback;
@@ -80,8 +84,10 @@ public class CallbackVideoSurface extends VideoSurface implements libvlc_video_f
         final int width = widthPointer.getValue();
         final int height = heightPointer.getValue();
         final byte[] chromaBytes = this.bufferFormat.getChroma().getBytes();
-        final int[] lines = this.bufferFormat.getLines(width, height);
         final int[] pitches = this.bufferFormat.getPitches(width, height);
+        final int[] lines = this.bufferFormat.getLines(width, height);
+
+        VideoLan4J.LOGGER.info("Width: {} - Height: {} - Chroma: {} - Pitches: {} - Lines: {}", width, height, bufferFormat.getChroma(), Arrays.toString(pitches), Arrays.toString(lines));
 
         // APPLY FORMAT - (IGNORE WIDTH AND HEIGHT)
         chromaPointer.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
