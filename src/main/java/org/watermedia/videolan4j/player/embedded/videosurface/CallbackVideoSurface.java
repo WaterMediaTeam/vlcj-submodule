@@ -110,7 +110,7 @@ public class CallbackVideoSurface extends VideoSurface {
          * @param lines
          */
         private void applyBufferFormat(BufferFormat bufferFormat, PointerByReference chroma, IntByReference width, IntByReference height, PointerByReference pitches, PointerByReference lines) {
-            final byte[] chromaBytes = bufferFormat.getChroma().name().toLowerCase().getBytes();
+            final byte[] chromaBytes = bufferFormat.getChroma().canonical().getBytes();
             chroma.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
             width.setValue(bufferFormat.getWidth());
             height.setValue(bufferFormat.getHeight());
