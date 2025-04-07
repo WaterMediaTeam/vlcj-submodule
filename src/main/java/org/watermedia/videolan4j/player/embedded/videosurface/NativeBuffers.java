@@ -65,9 +65,6 @@ final class NativeBuffers {
         pointers = new Pointer[planeCount];
         for (int i = 0; i < planeCount; i ++) {
             ByteBuffer buffer = Buffers.alloc(pitchValues[i] * lineValues[i]);
-            if (!Buffers.isAligned(Buffers.address(buffer))) {
-                VideoLan4J.LOGGER.warn("Detected an unaligned buffer. this might lead in I/O issues");
-            }
             nativeBuffers[i] = buffer;
             pointers[i] = Pointer.createConstant(Buffers.address(buffer));
             if (lockBuffers) {
