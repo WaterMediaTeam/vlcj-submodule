@@ -22,7 +22,6 @@ package org.watermedia.videolan4j.player.embedded.videosurface;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
-import org.watermedia.videolan4j.VideoLan4J;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferCleanupCallback;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormat;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormatCallback;
@@ -34,8 +33,6 @@ import org.watermedia.videolan4j.binding.internal.libvlc_unlock_callback_t;
 import org.watermedia.videolan4j.binding.internal.libvlc_video_cleanup_cb;
 import org.watermedia.videolan4j.binding.internal.libvlc_video_format_cb;
 import org.watermedia.videolan4j.player.base.MediaPlayer;
-
-import java.util.Arrays;
 
 /**
  * Implementation of a video surface that uses native callbacks to receive video frame data for rendering.
@@ -113,12 +110,12 @@ public class CallbackVideoSurface extends VideoSurface {
          * @param lines
          */
         private void applyBufferFormat(BufferFormat bufferFormat, PointerByReference chroma, IntByReference width, IntByReference height, PointerByReference pitches, PointerByReference lines) {
-            byte[] chromaBytes = bufferFormat.getChroma().getBytes();
+            final byte[] chromaBytes = bufferFormat.getChroma().name().toLowerCase().getBytes();
             chroma.getPointer().write(0, chromaBytes, 0, Math.min(chromaBytes.length, 4));
             width.setValue(bufferFormat.getWidth());
             height.setValue(bufferFormat.getHeight());
-            int[] pitchValues = bufferFormat.getPitches();
-            int[] lineValues = bufferFormat.getLines();
+            final int[] pitchValues = bufferFormat.getPitches();
+            final int[] lineValues = bufferFormat.getLines();
             pitches.getPointer().write(0, pitchValues, 0, pitchValues.length);
             lines.getPointer().write(0, lineValues, 0, lineValues.length);
         }

@@ -22,12 +22,12 @@ package org.watermedia.videolan4j.player.embedded.videosurface;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
-import org.watermedia.videolan4j.ByteBufferFactory;
 import org.watermedia.videolan4j.VideoLan4J;
 import org.watermedia.videolan4j.player.embedded.videosurface.callback.BufferFormat;
 import org.watermedia.videolan4j.binding.lib.Kernel32;
 import org.watermedia.videolan4j.binding.lib.LibC;
 import org.watermedia.videolan4j.binding.lib.size_t;
+import org.watermedia.videolan4j.tools.Buffers;
 
 import java.nio.ByteBuffer;
 
@@ -52,7 +52,7 @@ final class NativeBuffers {
     /**
      *
      * Memory must be aligned correctly (on a 32-byte boundary) for the libvlc API functions, this is all taken care of
-     * by the {@link ByteBufferFactory}.
+     * by the {@link Buffers}.
      *
      * @param bufferFormat
      * @return
@@ -64,12 +64,12 @@ final class NativeBuffers {
         nativeBuffers = new ByteBuffer[planeCount];
         pointers = new Pointer[planeCount];
         for (int i = 0; i < planeCount; i ++) {
-            ByteBuffer buffer = ByteBufferFactory.alloc(pitchValues[i] * lineValues[i]);
-            if (!ByteBufferFactory.isAligned(ByteBufferFactory.address(buffer))) {
+            ByteBuffer buffer = Buffers.alloc(pitchValues[i] * lineValues[i]);
+            if (!Buffers.isAligned(Buffers.address(buffer))) {
                 VideoLan4J.LOGGER.warn("Detected an unaligned buffer. this might lead in I/O issues");
             }
             nativeBuffers[i] = buffer;
-            pointers[i] = Pointer.createConstant(ByteBufferFactory.address(buffer));
+            pointers[i] = Pointer.createConstant(Buffers.address(buffer));
             if (lockBuffers) {
                 if (!Platform.isWindows()) {
                     LibC.INSTANCE.mlock(pointers[i], new NativeLong(buffer.capacity()));
@@ -94,7 +94,7 @@ final class NativeBuffers {
             }
             // WATERMeDIA
             for(ByteBuffer buffer: nativeBuffers) {
-                ByteBufferFactory.dealloc(buffer);
+                Buffers.dealloc(buffer);
             }
             nativeBuffers = null;
             pointers = null;

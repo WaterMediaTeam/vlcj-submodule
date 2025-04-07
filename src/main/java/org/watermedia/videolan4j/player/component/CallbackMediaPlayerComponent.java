@@ -28,7 +28,7 @@ import org.watermedia.videolan4j.factory.MediaPlayerFactory;
 import org.watermedia.videolan4j.player.base.MediaPlayer;
 import org.watermedia.videolan4j.player.embedded.EmbeddedMediaPlayer;
 import org.watermedia.videolan4j.player.embedded.fullscreen.FullScreenStrategy;
-import org.watermedia.videolan4j.player.embedded.videosurface.callback.format.RV32BufferFormat;
+import org.watermedia.videolan4j.tools.Chroma;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -327,8 +327,8 @@ public class CallbackMediaPlayerComponent extends MediaPlayerComponentBase imple
 
         @Override
         public BufferFormat getBufferFormat(int sourceWidth, int sourceHeight) {
-            newVideoBuffer(sourceWidth, sourceHeight);
-            return new RV32BufferFormat(sourceWidth, sourceHeight);
+            CallbackMediaPlayerComponent.this.newVideoBuffer(sourceWidth, sourceHeight);
+            return new BufferFormat(Chroma.RV32, sourceWidth, sourceHeight);
         }
 
     }

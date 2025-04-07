@@ -20,6 +20,7 @@
 package org.watermedia.videolan4j.player.embedded.videosurface.callback;
 
 import org.watermedia.videolan4j.player.embedded.videosurface.CallbackVideoSurface;
+import org.watermedia.videolan4j.tools.Chroma;
 
 import java.util.Arrays;
 
@@ -38,7 +39,7 @@ public class BufferFormat {
     /**
      * Chroma (pixel colour format).
      */
-    private final String chroma;
+    private final Chroma chroma;
 
     /**
      * Pixel width of the video.
@@ -63,20 +64,18 @@ public class BufferFormat {
     /**
      * Constructs a new BufferFormat instance with the given parameters.
      *
-     * @param chroma a VLC buffer type, must be exactly 4 characters and cannot contain non-ASCII characters
-     * @param width the width, must be &gt; 0
-     * @param height the height, must be &gt; 0
-     * @param pitches the pitch of each plane that this buffer consists of (usually a multiple of width)
-     * @param lines the number of lines of each plane that this buffer consists of (usually same as height)
+     * @param chroma a VLC buffer type, e.g. RV32, I420, YV12, etc.
+     * @param width the width must be major than 0
+     * @param height the height must be major than 0
      * @throws IllegalArgumentException if any parameter is invalid
      */
-    public BufferFormat(String chroma, int width, int height, int[] pitches, int[] lines) {
-        validate(chroma, width, height, pitches, lines);
+    public BufferFormat(final Chroma chroma, final int width, final int height) {
+        this.validate(width, height);
         this.chroma = chroma;
         this.width = width;
         this.height = height;
-        this.pitches = Arrays.copyOf(pitches, pitches.length);
-        this.lines = Arrays.copyOf(lines, lines.length);
+        this.pitches = chroma.getPitches(width);
+        this.lines = chroma.getLines(height);
     }
 
     /**
@@ -84,8 +83,8 @@ public class BufferFormat {
      *
      * @return pixel format
      */
-    public final String getChroma() {
-        return chroma;
+    public final Chroma getChroma() {
+        return this.chroma;
     }
 
     /**
@@ -94,7 +93,7 @@ public class BufferFormat {
      * @return width
      */
     public final int getWidth() {
-        return width;
+        return this.width;
     }
 
     /**
@@ -103,7 +102,7 @@ public class BufferFormat {
      * @return height
      */
     public final int getHeight() {
-        return height;
+        return this.height;
     }
 
     /**
@@ -112,7 +111,7 @@ public class BufferFormat {
      * @return pitches
      */
     public final int[] getPitches() {
-        return pitches;
+        return this.pitches;
     }
 
     /**
@@ -121,7 +120,7 @@ public class BufferFormat {
      * @return lines
      */
     public final int[] getLines() {
-        return lines;
+        return this.lines;
     }
 
     /**
@@ -130,19 +129,17 @@ public class BufferFormat {
      * @return number of planes
      */
     public final int getPlaneCount() {
-        return pitches.length;
+        return this.pitches.length;
     }
 
     @Override
     public final String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getSimpleName()).append('[');
-        sb.append("chroma=").append(chroma).append(',');
-        sb.append("width=").append(width).append(',');
-        sb.append("height=").append(height).append(',');
-        sb.append("pitches=").append(Arrays.toString(pitches)).append(',');
-        sb.append("lines=").append(Arrays.toString(lines)).append(']');
-        return sb.toString();
+        return this.getClass().getSimpleName() + '[' +
+                "chroma=" + this.chroma + ',' +
+                "width=" + this.width + ',' +
+                "height=" + this.height + ',' +
+                "pitches=" + Arrays.toString(this.pitches) + ',' +
+                "lines=" + Arrays.toString(this.lines) + ']';
     }
 
     /**
@@ -151,39 +148,16 @@ public class BufferFormat {
      * Incorrect parameter values can cause fatal crashes, so all are checked here
      * to mitigate.
      *
-     * @param chroma
      * @param width
      * @param height
-     * @param pitches
-     * @param lines
      * @throws IllegalArgumentException if any parameter is invalid
      */
-    private void validate(String chroma, int width, int height, int[] pitches, int[] lines) {
-        if(chroma == null || chroma.length() != 4) {
-            throw new IllegalArgumentException("chroma must be exactly 4 characters");
-        }
-        if(width <= 0) {
+    private void validate(final int width, final int height) {
+        if (width <= 0) {
             throw new IllegalArgumentException("width must be greater than zero");
         }
-        if(height <= 0) {
+        if (height <= 0) {
             throw new IllegalArgumentException("height must be greater than zero");
-        }
-        if(pitches == null || pitches.length == 0) {
-            throw new IllegalArgumentException("pitches length must be greater than zero");
-        }
-        if(lines == null || lines.length == 0) {
-            throw new IllegalArgumentException("lines length must be greater than zero");
-        }
-        if(pitches.length != lines.length) {
-            throw new IllegalArgumentException("pitches and lines must have equal length");
-        }
-        for(int i = 0; i < pitches.length; i++) {
-            if(pitches[i] <= 0) {
-                throw new IllegalArgumentException("pitch must be greater than zero");
-            }
-            if(lines[i] <= 0) {
-                throw new IllegalArgumentException("line must be greater than zero");
-            }
         }
     }
 
