@@ -119,8 +119,6 @@ public class CallbackVideoSurface extends VideoSurface {
             height.setValue(bufferFormat.getHeight());
             int[] pitchValues = bufferFormat.getPitches();
             int[] lineValues = bufferFormat.getLines();
-
-            VideoLan4J.LOGGER.info("Width: {} - Height: {} - Chroma: {} - Pitches: {} - Lines: {}", width.getValue(), height.getValue(), bufferFormat.getChroma(), Arrays.toString(pitchValues), Arrays.toString(lineValues));
             pitches.getPointer().write(0, pitchValues, 0, pitchValues.length);
             lines.getPointer().write(0, lineValues, 0, lineValues.length);
         }
