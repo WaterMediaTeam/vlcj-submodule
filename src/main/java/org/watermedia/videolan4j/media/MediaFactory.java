@@ -66,7 +66,7 @@ public final class MediaFactory {
      * @return media reference
      */
     public static MediaRef newMediaRef(libvlc_instance_t libvlcInstance, URI mrl, String... options) {
-        return createMediaRef(libvlcInstance, VideoLan4J.getMediaInstance(libvlcInstance, mrl), options);
+        return createMediaRef(libvlcInstance, VideoLan4J.createMediaInstance(libvlcInstance, mrl), options);
     }
 
     /**
@@ -164,7 +164,7 @@ public final class MediaFactory {
      * @return media
      */
     public static Media newMedia(libvlc_instance_t libvlcInstance, URI mrl, String... options) {
-        return createMedia(libvlcInstance, VideoLan4J.getMediaInstance(libvlcInstance, mrl), options);
+        return createMedia(libvlcInstance, VideoLan4J.createMediaInstance(libvlcInstance, mrl), options);
     }
 
     /**
